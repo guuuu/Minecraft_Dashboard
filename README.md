@@ -27,11 +27,11 @@ A forma correta de utilizar este projeto é:
 
 ### Funcionalidades
 De momento este painel de controlo suporta:
-	- Ligar servidor
-	- Desligar servidor
-	- Configurar um intervalo de tempo entre 0 e 60 segundos
-	- Desligar a mensagem de informação sobre o tempo restante para limpar o chão
-	- Controlo de backups
-		- Repor
-		- Criar
+- Ligar servidor
+- Desligar servidor
+- Configurar um intervalo de tempo entre 0 e 60 segundos
+- Desligar a mensagem de informação sobre o tempo restante para limpar o chão
+- Controlo de backups
+	- Repor
+	- Criar
 É recomendado usar como por exemplo uma nuvem, e definir o local de backups essa mesma nuvem, embora não seja essencial
