@@ -56,6 +56,7 @@
             this.backup_timer = new System.Windows.Forms.Timer(this.components);
             this.check_back_status = new System.Windows.Forms.Timer(this.components);
             this.check_logging = new System.Windows.Forms.Timer(this.components);
+            this.label5 = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.chao_val)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.backup_controller.SuspendLayout();
@@ -362,12 +363,27 @@
             this.check_logging.Interval = 1000;
             this.check_logging.Tick += new System.EventHandler(this.check_logging_Tick);
             // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.label5.ForeColor = System.Drawing.Color.White;
+            this.label5.Location = new System.Drawing.Point(1341, 28);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(144, 15);
+            this.label5.TabIndex = 17;
+            this.label5.Text = "Propriedades do servidor";
+            this.label5.Click += new System.EventHandler(this.label5_Click);
+            this.label5.MouseEnter += new System.EventHandler(this.label5_MouseEnter);
+            this.label5.MouseLeave += new System.EventHandler(this.label5_MouseLeave);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(33)))), ((int)(((byte)(33)))), ((int)(((byte)(33)))));
             this.ClientSize = new System.Drawing.Size(1497, 857);
+            this.Controls.Add(this.label5);
             this.Controls.Add(this.backup_controller);
             this.Controls.Add(this.server_status_lbl);
             this.Controls.Add(this.label3);
@@ -425,6 +441,7 @@
         private System.Windows.Forms.Timer backup_timer;
         private System.Windows.Forms.Timer check_back_status;
         private System.Windows.Forms.Timer check_logging;
+        private System.Windows.Forms.Label label5;
     }
 }
 

@@ -606,5 +606,12 @@ namespace Minecraft_Dashboard
             else
                 set_logging.Text = "Logging - OFF";
         }
+        private void label5_Click(object sender, EventArgs e)
+        {
+            Form2 f2 = new Form2();
+            f2.ShowDialog();
+        }
+        private void label5_MouseEnter(object sender, EventArgs e){ label5.ForeColor = Color.Blue; }
+        private void label5_MouseLeave(object sender, EventArgs e){ label5.ForeColor = Color.White; }
     }
 }

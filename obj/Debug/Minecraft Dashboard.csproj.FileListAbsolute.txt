@@ -8,3 +8,4 @@ D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.csproj.GenerateRes
 D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.csproj.CoreCompileInputs.cache
 D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.exe
 D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.pdb
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft_Dashboard.Form2.resources
