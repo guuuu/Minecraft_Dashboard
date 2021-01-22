@@ -1,0 +1,10 @@
+D:\Projetos\Minecraft Dashboard\bin\Debug\Minecraft Dashboard.exe.config
+D:\Projetos\Minecraft Dashboard\bin\Debug\Minecraft Dashboard.exe
+D:\Projetos\Minecraft Dashboard\bin\Debug\Minecraft Dashboard.pdb
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.csprojAssemblyReference.cache
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft_Dashboard.Form1.resources
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft_Dashboard.Properties.Resources.resources
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.csproj.GenerateResource.cache
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.csproj.CoreCompileInputs.cache
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.exe
+D:\Projetos\Minecraft Dashboard\obj\Debug\Minecraft Dashboard.pdb

@@ -1,0 +1,6 @@
+.vs
+.vscode
+__pycache__
+Setup.spec
+build
+Server
