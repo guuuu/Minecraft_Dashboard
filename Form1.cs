@@ -18,16 +18,19 @@ namespace Minecraft_Dashboard
     public partial class Form1 : Form
     {
         Thread server_thread;
+        Thread get_output_thread;
         Thread limpar_chao_thread;
         Thread auto_backup_thread;
+        Thread get_output_backup_thread;
         public static Process process;
+        public static Process backup_process;
         public static bool back = true;
         public static bool first = true;
         public static bool logging = true;
-        public static int to_sleep = 60000;
-        public static Process backup_process;
+        public static bool first_backup = false;
         public static bool server_status = false;
-        public static bool is_doing_backup = false;
+        public static bool should_count_auto_backup_time = true;
+        public static int to_sleep = 60000;
         public static int backup_sleep = 12 * 60 * 60 * 1000;
         public static string backup_folder_path = String.Empty;
         public static string server_file = Directory.GetCurrentDirectory().ToString() + "\\Server\\start.bat";
@@ -69,165 +72,35 @@ namespace Minecraft_Dashboard
                 restore_backup.Enabled = true;
                 create_backup.Enabled = true;
             }
-            auto_backup_thread = new Thread(new ThreadStart(auto_backup));
-            auto_backup_thread.Start();
-            auto_backup_thread.IsBackground = true;
+
             backup_timer.Start();
 
             styleButtons();
 
             sv_out.ScrollBars = ScrollBars.Both;
-            //sv_out.ScrollBars = ScrollBars.Horizontal;
+
+            server_thread = new Thread(new ThreadStart(start_server));
+            get_output_thread = new Thread(new ThreadStart(get_output));
+            auto_backup_thread = new Thread(new ThreadStart(auto_backup));
+            limpar_chao_thread = new Thread(new ThreadStart(limpar_chao));
+            get_output_backup_thread = new Thread(new ThreadStart(get_backup_process_output));
         }
         private void start_Click(object sender, EventArgs e)
         {
-            server_thread = new Thread(new ThreadStart(start_server));
-            server_thread.Start();
-            server_thread.IsBackground = true;
-            server_status = true;
-        }
-        private void start_server()
-        {
-            if(first)
-                Directory.SetCurrentDirectory(Directory.GetCurrentDirectory().ToString() + "\\Server");
-            try
-            {
-                process = new Process
-                {
-                    StartInfo = new ProcessStartInfo
-                    {
-                        FileName = server_file,
-                        Arguments = "",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardInput = true,
-                        CreateNoWindow = true
-                    }
-                };
-
-                process.Start();
-
-                Thread thread = new Thread(new ThreadStart(get_output));
-                limpar_chao_thread = new Thread(new ThreadStart(limpar_chao));
-                thread.Start();
-                thread.IsBackground = true;
-                Thread.Sleep(20000);
-                limpar_chao_thread.Start();
-                limpar_chao_thread.IsBackground = true;
+            if (first) { 
+                server_thread.Start();
+                server_thread.IsBackground = true;
             }
-            catch(Exception e){ AddLinha($"[CONTROLLER - ERROR] - {e.Message}"); }
-        }
-        private void get_output()
-        {
-            while (!process.StandardOutput.EndOfStream)
+            else
             {
-                try
-                {
-                    var line = process.StandardOutput.ReadLine();
-                    line.Replace("[STDOUT]", "");
-                    AddLinha($"[SERVER] - {line}");
-
-                    if (line.ToString().ToUpper().Contains("$SET") && line.ToString().ToUpper().Contains("CLEAR_GROUND="))
-                        if(Convert.ToInt32(line.Split('=')[1].ToString()) >= 0 && Convert.ToInt32(line.Split('=')[1].ToString()) <= 60) { 
-                            to_sleep = Convert.ToInt32(line.Split('=')[1].ToString()) * 1000;
-                            chao_val.Value = to_sleep / 1000;
-                            if(logging)
-                                send_input("/say O intervalo de tempo para limpar o chao foi alterado para " + to_sleep / 1000 + " segundos");
-                            AddLinha("O intervalo de tempo para limpar o chao foi alterado para " + to_sleep / 1000 + " segundos");
-                        }
-                    if (line.ToLower().Contains("/stop")) server_status = false;
-                    if (line.ToLower().Contains("$set") && line.ToLower().Contains("logging"))                    
-                        if(line.Split('=')[1] == "0")
-                            if (logging) { 
-                                logging = false;
-                                send_input("/say Valor alterado com sucesso!");
-                            }
-                            else if (line.Split('=')[1] == "1") { 
-                                if (!logging) { 
-                                    logging = true;
-                                    send_input("/say Valor alterado com sucesso!");
-                                }
-                            }
-                }
-                catch (Exception e){ AddLinha($"[ERROR] - {e.Message}"); }
+                start_server();
             }
         }
         private void stop_Click(object sender, EventArgs e)
         {
-            send_input("/stop");
-            server_thread.Abort();
-            first = false;
-            server_status = false;
-        }
-        public void AddLinha(String text)
-        {
-            if (InvokeRequired)
-            {
-                this.Invoke((MethodInvoker)delegate () { AddLinha(text); });
-                return;
-            }
-            sv_out.AppendText(text + "\r\n");
-        }
-        private void send_input_bt_Click(object sender, EventArgs e)
-        {
-            send_input(command.Text);
-            if (command.Text.ToLower() == "/stop")
-            {
-                server_status = false;
-                server_thread.Abort();
-            }
-            if (command.Text.ToLower() == "/start")
-            {
-                if (!server_status)
-                {
-                    server_thread = new Thread(new ThreadStart(start_server));
-                    server_thread.Start();
-                    server_thread.IsBackground = true;
-                    server_status = true;
-                }
-            }
-            command.Text = String.Empty;
-        }
-        private void send_input(string arg){ process.StandardInput.WriteLine(arg); }
-        private void command_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter){ 
-                send_input(command.Text);
-                command.Text = String.Empty;
-                if (command.Text.ToLower() == "/stop")
-                {
-                    server_status = false;
-                    server_thread.Abort();
-                }
-                if (command.Text.ToLower() == "/start")
-                {
-                    if (!server_status)
-                    {
-                        server_thread = new Thread(new ThreadStart(start_server));
-                        server_thread.Start();
-                        server_thread.IsBackground = true;
-                        server_status = true;
-                    }
-                }
-            }
+            stop_server();
         }
         private void cls_Click(object sender, EventArgs e){ sv_out.Text = String.Empty; }
-        private void limpar_chao()
-        {
-            do
-            {
-                Thread.Sleep(to_sleep / 2);
-                if (logging)
-                {
-                    send_input("/say O chao vai ser limpo dentro de " + ((to_sleep / 1000) / 2).ToString() + " segundos");
-                    AddLinha("/say O chao vai ser limpo dentro de " + ((to_sleep / 1000) / 2).ToString() + " segundos");
-                }
-                Thread.Sleep(to_sleep / 2);
-
-                send_input("/kill @e[type=Item]");
-                if (logging) AddLinha("Chão limpo");
-            } while (true);
-        }
         private void Mudar_valor_limpar_chao_Click(object sender, EventArgs e)
         {
             if(chao_val.Value >= 0 && chao_val.Value <= 60) { 
@@ -250,46 +123,6 @@ namespace Minecraft_Dashboard
                 logging = true;
             }
         }
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            if (server_status)
-            {
-                stop.Enabled = true;
-                start.Enabled = false;
-                command.Enabled = true;
-                chao_val.Enabled = true;
-                set_logging.Enabled = true;
-                send_input_bt.Enabled = true;
-                server_status_lbl.Text = "Running";
-                Mudar_valor_limpar_chao.Enabled = true;
-                server_status_lbl.ForeColor = Color.Green;
-            }
-            else
-            {
-                stop.Enabled = false;
-                start.Enabled = true;
-                command.Enabled = false;
-                chao_val.Enabled = false;
-                set_logging.Enabled = false;
-                send_input_bt.Enabled = false;
-                server_status_lbl.Text = "Not running";
-                Mudar_valor_limpar_chao.Enabled = false;
-                server_status_lbl.ForeColor = Color.Red;
-            }
-        }
-        private void chao_val_Scroll(object sender, EventArgs e)
-        {
-            val_scroll.Text = chao_val.Value.ToString();
-        }
-        private void get_backups()
-        {
-            foreach (string file in Directory.GetFiles(backup_folder_path))
-            {
-                string aux = file.Replace(backup_folder_path + "\\", "");
-                if(aux.Contains(".zip") || aux.Contains(".rar") || aux.Contains(".7z"))
-                    backup_list.Items.Add(aux);
-            }
-        }
         private void restore_backup_Click(object sender, EventArgs e)
         {
             bool proceed = true;
@@ -306,9 +139,7 @@ namespace Minecraft_Dashboard
                         if (server_status) { 
                             send_input("/say O servidor vai repor um backup dentro de 5 segundos");
                             Thread.Sleep(5000);
-                            send_input("/stop");
-                            Thread.Sleep(5000);
-                            server_status = false;
+                            stop_server();
                         }
 
                         try
@@ -321,15 +152,16 @@ namespace Minecraft_Dashboard
                             AddLinha("[CONTROLLER] - Alguma coisa correu mal a reverter...");
                             AddLinha("[CONTROLLER - ERROR] - " + ex.Message);
                             DialogResult res = MessageBox.Show("Já existe um backup do mundo original antes de ser revertido.\nDeseja eleminar esse mesmo backup?", "Backup existente", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                            if(res == DialogResult.Yes)
-                            {
-                                Directory.Delete(Directory.GetCurrentDirectory() + "\\world backup before restore", true);
-                                proceed = true;
-                            }
-                            else
-                            {
-                                proceed = false;
-                            }
+                            proceed = true;
+                            //if (res == DialogResult.Yes)
+                            //{
+                            //    Directory.Delete(Directory.GetCurrentDirectory() + "\\world backup before restore", true);
+                            //    proceed = true;
+                            //}
+                            //else
+                            //{
+                            //    proceed = false;
+                            //}
                         }
 
                         if (proceed) { 
@@ -387,7 +219,10 @@ namespace Minecraft_Dashboard
                             }
                         }
 
-                        Directory.SetCurrentDirectory(Directory.GetCurrentDirectory() + "\\..");
+                        if(first)
+                            Directory.SetCurrentDirectory(server_file + "\\..\\..");
+                        else
+                            Directory.SetCurrentDirectory(server_file + "\\..");
                         AddLinha("[CONTROLLER] - Pronto para iniciar o servidor novamente....");
                     }
                 }
@@ -407,9 +242,7 @@ namespace Minecraft_Dashboard
                         Thread.Sleep(5000);
                     }
 
-                    send_input("/stop");
-                    server_thread.Abort();
-                    server_status = false;
+                    stop_server();
                     AddLinha("[CONTROLLER] - Servidor parado, a iniciar backup...");
                     Directory.SetCurrentDirectory(backup_file + "\\..");
                     execute_backup();
@@ -421,21 +254,6 @@ namespace Minecraft_Dashboard
                 execute_backup();
                 Directory.SetCurrentDirectory(server_file + "\\..");
             }
-        }
-        private void get_backup_process_output()
-        {
-            is_doing_backup = true;
-            while (!backup_process.StandardOutput.EndOfStream)
-            {
-                try
-                {
-                    var line = backup_process.StandardOutput.ReadLine();
-                    AddLinha($"[CONTROLLER] - {line}");
-                }
-                catch (Exception e) { AddLinha($"[ERROR] - {e.Message}"); }
-            }
-
-            is_doing_backup = false;
         }
         private void setup_backup_folder_Click(object sender, EventArgs e)
         {
@@ -466,33 +284,233 @@ namespace Minecraft_Dashboard
                 }
             }
         }
+        private void stop_server()
+        {
+            if (server_status) { 
+                send_input("/stop"); 
+            }
+            first = false;
+            server_status = false;
+            should_count_auto_backup_time = false;
+        }
+        private void start_server()
+        {
+            if(first)
+                Directory.SetCurrentDirectory(Directory.GetCurrentDirectory().ToString() + "\\Server");
+            try
+            {
+                process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = server_file,
+                        Arguments = "",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardInput = true,
+                        CreateNoWindow = true
+                    }
+                };
+
+                process.Start();
+                server_status = true;
+                should_count_auto_backup_time = true;
+                if (first) { 
+                    get_output_thread.Start();
+                    get_output_thread.IsBackground = true;
+                    Thread.Sleep(20000);
+                    limpar_chao_thread.Start();
+                    auto_backup_thread.Start();
+                    limpar_chao_thread.IsBackground = true;
+                    auto_backup_thread.IsBackground = true;
+                }
+            }
+            catch(Exception e){ AddLinha($"[CONTROLLER - ERROR] - {e.Message}"); }
+        }
+        private void get_output()
+        {
+            do
+            {
+                if (server_status) {
+                    try { 
+                    while (!process.StandardOutput.EndOfStream)
+                    {
+                        try
+                        {
+                            var line = process.StandardOutput.ReadLine();
+                            line.Replace("[STDOUT]", "");
+                            AddLinha($"[SERVER] - {line}");
+
+                            if (line.ToString().ToUpper().Contains("$SET") && line.ToString().ToUpper().Contains("CLEAR_GROUND="))
+                                if (Convert.ToInt32(line.Split('=')[1].ToString()) >= 0 && Convert.ToInt32(line.Split('=')[1].ToString()) <= 60)
+                                {
+                                    to_sleep = Convert.ToInt32(line.Split('=')[1].ToString()) * 1000;
+                                    chao_val.Value = to_sleep / 1000;
+                                    if (logging)
+                                        send_input("/say O intervalo de tempo para limpar o chao foi alterado para " + to_sleep / 1000 + " segundos");
+                                    AddLinha("O intervalo de tempo para limpar o chao foi alterado para " + to_sleep / 1000 + " segundos");
+                                }
+                            if (line.ToLower().Contains("/stop")) stop_server();
+                            if (line.ToLower().Contains("$set") && line.ToLower().Contains("logging"))
+                                if (line.Split('=')[1] == "0")
+                                    if (logging)
+                                    {
+                                        logging = false;
+                                        send_input("/say Valor alterado com sucesso!");
+                                    }
+                                    else if (line.Split('=')[1] == "1")
+                                    {
+                                        if (!logging)
+                                        {
+                                            logging = true;
+                                            send_input("/say Valor alterado com sucesso!");
+                                        }
+                                    }
+                        }
+                        catch (Exception e) { AddLinha($"[ERROR] - {e.Message}"); }
+                    }
+                    }
+                    catch (Exception ex){ continue; }
+                    process.Close();
+                    if (server_status)
+                        stop_server();
+                }
+            } while (true);
+
+        }
+        public void AddLinha(String text)
+        {
+            if (InvokeRequired)
+            {
+                this.Invoke((MethodInvoker)delegate () { AddLinha(text); });
+                return;
+            }
+            sv_out.AppendText(text + "\r\n");
+        }
+        private void send_input_bt_Click(object sender, EventArgs e)
+        {
+            send_input(command.Text);
+            if (command.Text.ToLower() == "/stop")
+                stop_server();
+
+            if (command.Text.ToLower() == "/start")
+                if (!server_status)
+                    server_thread.Start();
+
+            command.Text = String.Empty;
+        }
+        private void send_input(string arg){ 
+            if(server_status)
+                try { 
+                    process.StandardInput.WriteLine(arg);
+                }
+                catch (Exception ex) {}
+        }
+        private void command_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter){ 
+                if (command.Text.ToLower() == "/stop")
+                    stop_server();
+
+                if (command.Text.ToLower() == "/start")
+                    if (!server_status)
+                        start_server();
+
+                send_input(command.Text);
+                command.Text = String.Empty;
+            }
+        }
+        private void limpar_chao()
+        {
+            do
+            {
+                if (server_status) { 
+                    Thread.Sleep(to_sleep / 2);
+                    if (logging)
+                    {
+                        send_input("/say O chao vai ser limpo dentro de " + ((to_sleep / 1000) / 2).ToString() + " segundos");
+                        AddLinha("/say O chao vai ser limpo dentro de " + ((to_sleep / 1000) / 2).ToString() + " segundos");
+                    }
+                    Thread.Sleep(to_sleep / 2);
+
+                    send_input("/kill @e[type=Item]");
+                    if (logging) AddLinha("Chão limpo");
+                }
+            } while (true);
+        }
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            if (server_status)
+            {
+                stop.Enabled = true;
+                start.Enabled = false;
+                command.Enabled = true;
+                chao_val.Enabled = true;
+                set_logging.Enabled = true;
+                send_input_bt.Enabled = true;
+                server_status_lbl.Text = "Running";
+                Mudar_valor_limpar_chao.Enabled = true;
+                server_status_lbl.ForeColor = Color.Green;
+            }
+            else
+            {
+                stop.Enabled = false;
+                start.Enabled = true;
+                command.Enabled = false;
+                chao_val.Enabled = false;
+                set_logging.Enabled = false;
+                send_input_bt.Enabled = false;
+                server_status_lbl.Text = "Not running";
+                Mudar_valor_limpar_chao.Enabled = false;
+                server_status_lbl.ForeColor = Color.Red;
+            }
+        }
+        private void chao_val_Scroll(object sender, EventArgs e)
+        {
+            val_scroll.Text = chao_val.Value.ToString();
+        }
+        private void get_backups()
+        {
+            foreach (string file in Directory.GetFiles(backup_folder_path))
+            {
+                string aux = file.Replace(backup_folder_path + "\\", "");
+                if(aux.Contains(".zip") || aux.Contains(".rar") || aux.Contains(".7z"))
+                    backup_list.Items.Add(aux);
+            }
+        }
         private void auto_backup()
         {
-            AddLinha("[CONTROLLER] - 12 horas até ao backup");
+            do
+            {
+                if (server_status)
+                {
+                    if (should_count_auto_backup_time) {
+                        AddLinha("[CONTROLLER] - 12 horas até ao backup");
 
-            Thread.Sleep(11 * 60 * 60 * 1000);
-            send_input("/say O servidor vai ser desligado em 1 hora para fazer backup!");
-            AddLinha("[CONTROLLER] - 55 minutos até ao backup");
+                        Thread.Sleep(11 * 60 * 60 * 1000);
+                        send_input("/say O servidor vai ser desligado em 1 hora para fazer backup!");
+                        AddLinha("[CONTROLLER] - 55 minutos até ao backup");
 
-            Thread.Sleep(55 * 60 * 1000);
-            send_input("/say O servidor vai ser desligado em 5 minutos para fazer backup!");
-            AddLinha("[CONTROLLER] - 4 minutos até ao backup");
+                        Thread.Sleep(55 * 60 * 1000);
+                        send_input("/say O servidor vai ser desligado em 5 minutos para fazer backup!");
+                        AddLinha("[CONTROLLER] - 4 minutos até ao backup");
 
-            Thread.Sleep(4 * 60 * 1000);
-            send_input("/say O servidor vai ser desligado em 1 minuto para fazer backup!");
-            AddLinha("[CONTROLLER] - 1 minuto até ao backup");
+                        Thread.Sleep(4 * 60 * 1000);
+                        send_input("/say O servidor vai ser desligado em 1 minuto para fazer backup!");
+                        AddLinha("[CONTROLLER] - 1 minuto até ao backup");
 
-            Thread.Sleep(1 * 60 * 1000);
-            send_input("/say A desligar...");
-            AddLinha($"[CONTROLLER] - A desligar o servidor...");
-            Thread.Sleep(10 * 1000);
-            if (server_status) { 
-                send_input("/stop");
-                server_thread.Abort();
-            }
-            Directory.SetCurrentDirectory(backup_file + "\\..");
-            execute_backup();
-            Directory.SetCurrentDirectory(server_file + "\\..");
+                        Thread.Sleep(1 * 60 * 1000);
+                        send_input("/say A desligar...");
+                        AddLinha($"[CONTROLLER] - A desligar o servidor...");
+                        Thread.Sleep(10 * 1000);
+                        if (server_status) { stop_server(); }
+                        Directory.SetCurrentDirectory(backup_file + "\\..");
+                        execute_backup();
+                        Directory.SetCurrentDirectory(server_file + "\\..");
+                        start_server();
+                    }
+                }
+            } while (true);
         }
         private void execute_backup()
         {
@@ -512,12 +530,33 @@ namespace Minecraft_Dashboard
                 };
 
                 backup_process.Start();
-
-                Thread get_out = new Thread(new ThreadStart(get_backup_process_output));
-                get_out.Start();
-                get_out.IsBackground = true;
+                if (!first_backup) {
+                    first_backup = true;
+                    get_output_backup_thread.Start();
+                    get_output_backup_thread.IsBackground = true;
+                }
             }
             catch (Exception ex) { AddLinha($"[CONTROLLER - ERROR] - {ex.Message}"); }
+        }
+        private void get_backup_process_output()
+        {
+            do
+            {
+                try { 
+                while (!backup_process.StandardOutput.EndOfStream)
+                {
+                    try
+                    {
+                        var line = backup_process.StandardOutput.ReadLine();
+                        AddLinha($"[CONTROLLER] - {line}");
+                    }
+                    catch (Exception e) { AddLinha($"[ERROR] - {e.Message}"); }
+                }
+                backup_process.Close();
+                }
+                catch (Exception) { }
+            } while (true);
+
         }
         private void backup_timer_Tick(object sender, EventArgs e)
         {
@@ -541,6 +580,14 @@ namespace Minecraft_Dashboard
             //if (is_doing_backup) start.Enabled = false;
             //else start.Enabled = true;
         }
+        private void check_logging_Tick(object sender, EventArgs e)
+        {
+            if (logging)
+                set_logging.Text = "Logging - ON";
+            else
+                set_logging.Text = "Logging - OFF";
+        }
+        //style vvvv
         private void styleButtons()
         {
             start.FlatStyle = FlatStyle.Flat;
@@ -599,19 +646,12 @@ namespace Minecraft_Dashboard
         private void setup_backup_folder_MouseLeave(object sender, EventArgs e){ setup_backup_folder.BackColor = ColorTranslator.FromHtml("#212121"); }
         private void send_input_bt_MouseEnter(object sender, EventArgs e){ send_input_bt.BackColor = ColorTranslator.FromHtml("#C495FD"); }
         private void send_input_bt_MouseLeave(object sender, EventArgs e){ send_input_bt.BackColor = ColorTranslator.FromHtml("#212121"); }
-        private void check_logging_Tick(object sender, EventArgs e)
-        {
-            if (logging)
-                set_logging.Text = "Logging - ON";
-            else
-                set_logging.Text = "Logging - OFF";
-        }
+        private void label5_MouseEnter(object sender, EventArgs e){ label5.ForeColor = Color.Blue; }
+        private void label5_MouseLeave(object sender, EventArgs e){ label5.ForeColor = Color.White; }
         private void label5_Click(object sender, EventArgs e)
         {
             Form2 f2 = new Form2();
             f2.ShowDialog();
         }
-        private void label5_MouseEnter(object sender, EventArgs e){ label5.ForeColor = Color.Blue; }
-        private void label5_MouseLeave(object sender, EventArgs e){ label5.ForeColor = Color.White; }
     }
 }
