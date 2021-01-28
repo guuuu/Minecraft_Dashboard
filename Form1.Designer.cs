@@ -57,6 +57,7 @@
             this.check_back_status = new System.Windows.Forms.Timer(this.components);
             this.check_logging = new System.Windows.Forms.Timer(this.components);
             this.label5 = new System.Windows.Forms.Label();
+            this.check_clear_value = new System.Windows.Forms.Timer(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.chao_val)).BeginInit();
             this.groupBox1.SuspendLayout();
             this.backup_controller.SuspendLayout();
@@ -377,6 +378,11 @@
             this.label5.MouseEnter += new System.EventHandler(this.label5_MouseEnter);
             this.label5.MouseLeave += new System.EventHandler(this.label5_MouseLeave);
             // 
+            // check_clear_value
+            // 
+            this.check_clear_value.Interval = 1000;
+            this.check_clear_value.Tick += new System.EventHandler(this.check_clear_value_Tick);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -442,6 +448,7 @@
         private System.Windows.Forms.Timer check_back_status;
         private System.Windows.Forms.Timer check_logging;
         private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Timer check_clear_value;
     }
 }
 
